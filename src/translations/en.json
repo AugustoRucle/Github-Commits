@@ -1,0 +1,20 @@
+{
+  "app.title": "GitHub Commits Analytics Hub",
+  "app.description": "Connect your GitHub repositories and leverage AI to analyze commit patterns, track development progress, and gain insights into your codebase evolution.",
+  "form.githubToken.label": "GitHub Personal Access Token",
+  "form.githubToken.placeholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
+  "form.githubToken.required": "GitHub token is required",
+  "form.githubToken.guide": "Don't know how to generate a token? Check out this {link}.",
+  "form.chatgptToken.label": "ChatGPT API Key",
+  "form.chatgptToken.placeholder": "sk-xxxxxxxxxxxxxxxxxxxx",
+  "form.chatgptToken.required": "ChatGPT API Key is required",
+  "form.chatgptToken.guide": "Don't know how to generate an API key? Check out this {link}.",
+  "form.button.submit": "Analyze Commits",
+  "form.button.loading": "Connecting...",
+  "popover.githubToken": "Provide your GitHub Personal Access Token to allow the application to access your repositories and commit history.",
+  "popover.chatgptToken": "Provide your ChatGPT API Key to enable AI-powered commit analysis and insights.",
+  "footer.secure": "Secure token storage",
+  "footer.realtime": "Real-time analysis",
+  "footer.ai_insights": "AI insights",
+  "guide.link": "guide"
+}

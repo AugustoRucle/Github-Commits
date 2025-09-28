@@ -5,6 +5,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image";
 import Popover from "./components/Popover";
+import { FormattedMessage, useIntl } from 'react-intl';
+import { useI18n } from './context/I18nProvider';
 
 /**
  * @summary The home page of the application.
@@ -18,6 +20,12 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const router = useRouter()
+  const intl = useIntl();
+  const { locale, setLocale } = useI18n();
+
+  const toggleLocale = () => {
+    setLocale(locale === 'en' ? 'es' : 'en');
+  };
 
   /**
    * @summary Handles the change event for the GitHub token input.
@@ -26,9 +34,9 @@ export default function HomePage() {
   const handleGithubTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setGithubToken(e.target.value);
     if (errors.githubToken) {
-        const newErrors = { ...errors };
-        delete newErrors.githubToken;
-        setErrors(newErrors);
+      const newErrors = { ...errors };
+      delete newErrors.githubToken;
+      setErrors(newErrors);
     }
   };
 
@@ -39,9 +47,9 @@ export default function HomePage() {
   const handleChatgptTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChatgptToken(e.target.value);
     if (errors.chatgptToken) {
-        const newErrors = { ...errors };
-        delete newErrors.chatgptToken;
-        setErrors(newErrors);
+      const newErrors = { ...errors };
+      delete newErrors.chatgptToken;
+      setErrors(newErrors);
     }
   };
 
@@ -55,15 +63,15 @@ export default function HomePage() {
     const newErrors: { [key: string]: string } = {};
 
     if (!githubToken) {
-        newErrors.githubToken = "GitHub token is required";
+      newErrors.githubToken = intl.formatMessage({ id: 'form.githubToken.required' });
     }
     if (!chatgptToken) {
-        newErrors.chatgptToken = "ChatGPT API Key is required";
+      newErrors.chatgptToken = intl.formatMessage({ id: 'form.chatgptToken.required' });
     }
 
     if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
+      setErrors(newErrors);
+      return;
     }
 
     setIsLoading(true)
@@ -77,17 +85,20 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex justify-end">
+          <button onClick={toggleLocale} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
+            {locale === 'en' ? 'Español' : 'English'}
+          </button>
+        </div>
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-4rem)]">
           <div className="space-y-8">
             <div className="space-y-6">
               <div className="space-y-4">
                 <h1 className="text-5xl font-bold tracking-tight">
-                  GitHub Commits
-                  <span className="block text-blue-500">Analytics Hub</span>
+                  <FormattedMessage id="app.title" />
                 </h1>
                 <p className="text-lg text-gray-400 max-w-xl">
-                  Connect your GitHub repositories and leverage AI to analyze commit patterns, track development
-                  progress, and gain insights into your codebase evolution.
+                  <FormattedMessage id="app.description" />
                 </p>
               </div>
 
@@ -97,51 +108,63 @@ export default function HomePage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <label htmlFor="github-token" className="text-sm font-medium text-white flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Image src='/images/github.png' alt='github image' width={16} height={16} className="text-gray-400" />
-                                GitHub Personal Access Token
-                            </div>
-                            <Popover content="Provide your GitHub Personal Access Token to allow the application to access your repositories and commit history.">
-                                <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
-                            </Popover>
+                          <div className="flex items-center gap-2">
+                            <Image src='/images/github.png' alt='github image' width={16} height={16} className="text-gray-400" />
+                            <FormattedMessage id="form.githubToken.label" />
+                          </div>
+                          <Popover content={intl.formatMessage({ id: 'popover.githubToken' })}>
+                            <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
+                          </Popover>
                         </label>
                         <input
                           id="github-token"
                           type="password"
-                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                          placeholder={intl.formatMessage({ id: 'form.githubToken.placeholder' })}
                           value={githubToken}
                           onChange={handleGithubTokenChange}
                           className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 ${errors.githubToken ? 'border-red-500' : ''}`}
                         />
                         {errors.githubToken && <p className="text-xs text-red-500 mt-1">{errors.githubToken}</p>}
                         <p className="text-xs text-gray-500">
-                            Don't know how to generate a token? Check out this 
-                            <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline"> guide</a>.
+                          <FormattedMessage
+                            id="form.githubToken.guide"
+                            values={{
+                              link: <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                <FormattedMessage id="guide.link" />
+                              </a>
+                            }}
+                          />
                         </p>
                       </div>
 
                       <div className="space-y-2">
                         <label htmlFor="chatgpt-token" className="text-sm font-medium text-white flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Image src="/images/chatgpt.png" alt="ChatGPT image" width={14} height={14} />
-                                ChatGPT API Key
-                            </div>
-                            <Popover content="Provide your ChatGPT API Key to enable AI-powered commit analysis and insights.">
-                                <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
-                            </Popover>
+                          <div className="flex items-center gap-2">
+                            <Image src="/images/chatgpt.png" alt="ChatGPT image" width={14} height={14} />
+                            <FormattedMessage id="form.chatgptToken.label" />
+                          </div>
+                          <Popover content={intl.formatMessage({ id: 'popover.chatgptToken' })}>
+                            <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
+                          </Popover>
                         </label>
                         <input
                           id="chatgpt-token"
                           type="password"
-                          placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                          placeholder={intl.formatMessage({ id: 'form.chatgptToken.placeholder' })}
                           value={chatgptToken}
                           onChange={handleChatgptTokenChange}
                           className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 ${errors.chatgptToken ? 'border-red-500' : ''}`}
                         />
                         {errors.chatgptToken && <p className="text-xs text-red-500 mt-1">{errors.chatgptToken}</p>}
                         <p className="text-xs text-gray-500">
-                            Don't know how to generate an API key? Check out this 
-                            <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline"> guide</a>.
+                          <FormattedMessage
+                            id="form.chatgptToken.guide"
+                            values={{
+                              link: <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                <FormattedMessage id="guide.link" />
+                              </a>
+                            }}
+                          />
                         </p>
                       </div>
                     </div>
@@ -153,10 +176,10 @@ export default function HomePage() {
                     >
                       {isLoading
                         ? (
-                          "Connecting..."
+                          <FormattedMessage id="form.button.loading" />
                         ) : (
                           <>
-                            Analyze Commits
+                            <FormattedMessage id="form.button.submit" />
                             <Image src="/images/right-arrow.png" alt="Arrow right image" width={16} height={16} className="ml-4" />
                           </>
                         )}
@@ -168,15 +191,15 @@ export default function HomePage() {
               <div className="flex items-center gap-6 text-sm text-gray-400">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  Secure token storage
+                  <FormattedMessage id="footer.secure" />
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                  Real-time analysis
+                  <FormattedMessage id="footer.realtime" />
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
-                  AI insights
+                  <FormattedMessage id="footer.ai_insights" />
                 </div>
               </div>
             </div>

@@ -1,0 +1,20 @@
+{
+  "app.title": "Centro de Análisis de Commits de GitHub",
+  "app.description": "Conecta tus repositorios de GitHub y aprovecha la IA para analizar patrones de commits, seguir el progreso del desarrollo y obtener información sobre la evolución de tu código.",
+  "form.githubToken.label": "Token de Acceso Personal de GitHub",
+  "form.githubToken.placeholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
+  "form.githubToken.required": "El token de GitHub es requerido",
+  "form.githubToken.guide": "¿No sabes cómo generar un token? Consulta esta {link}.",
+  "form.chatgptToken.label": "Clave de API de ChatGPT",
+  "form.chatgptToken.placeholder": "sk-xxxxxxxxxxxxxxxxxxxx",
+  "form.chatgptToken.required": "La clave de API de ChatGPT es requerida",
+  "form.chatgptToken.guide": "¿No sabes cómo generar una clave de API? Consulta esta {link}.",
+  "form.button.submit": "Analizar Commits",
+  "form.button.loading": "Conectando...",
+  "popover.githubToken": "Proporciona tu Token de Acceso Personal de GitHub para permitir que la aplicación acceda a tus repositorios y al historial de commits.",
+  "popover.chatgptToken": "Proporciona tu Clave de API de ChatGPT para habilitar el análisis de commits y la obtención de información mediante IA.",
+  "footer.secure": "Almacenamiento seguro de tokens",
+  "footer.realtime": "Análisis en tiempo real",
+  "footer.ai_insights": "Información con IA",
+  "guide.link": "guía"
+}
