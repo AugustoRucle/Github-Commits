@@ -1,12 +1,14 @@
 'use client'
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image";
 import Popover from "./components/Popover";
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useI18n } from './context/I18nProvider';
+import { fetchUser } from "@/api/github";
+import { testApiKeyOpenAI } from "@/api/openai";
 
 /**
  * @summary The home page of the application.
@@ -17,8 +19,10 @@ import { useI18n } from './context/I18nProvider';
 export default function HomePage() {
   const [githubToken, setGithubToken] = useState("")
   const [chatgptToken, setChatgptToken] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [showGithubToken, setShowGithubToken] = useState(false);
+  const [showChatgptToken, setShowChatgptToken] = useState(false);
   const router = useRouter()
   const intl = useIntl();
   const { locale, setLocale } = useI18n();
@@ -54,32 +58,59 @@ export default function HomePage() {
   };
 
   /**
+   * @summary Toggles the visibility of the GitHub token input
+   */
+  const toggleGithubTokenVisibility = () => {
+    setShowGithubToken(!showGithubToken);
+  };
+
+  /**
+   * @summary Toggles the visibility of the ChatGPT token input
+   */
+  const toggleChatgptTokenVisibility = () => {
+    setShowChatgptToken(!showChatgptToken);
+  };
+
+  /**
    * @summary Handles the form submission.
    * @description Validates the form, stores the tokens in localStorage, and navigates to the commits page.
    * @param {React.FormEvent} e - The form event.
    */
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const newErrors: { [key: string]: string } = {};
+    const controller = new AbortController();
+    try {
+      setIsLoading(true);
 
-    if (!githubToken) {
-      newErrors.githubToken = intl.formatMessage({ id: 'form.githubToken.required' });
+      e.preventDefault()
+      const newErrors: { [key: string]: string } = {};
+
+      if (!githubToken) {
+        newErrors.githubToken = intl.formatMessage({ id: 'form.githubToken.required' });
+      }
+      if (!chatgptToken) {
+        newErrors.chatgptToken = intl.formatMessage({ id: 'form.chatgptToken.required' });
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsLoading(false);
+        return;
+      }
+
+      setShowGithubToken(false);
+      setShowChatgptToken(false);
+
+      const userGithub = await fetchUser(githubToken, controller.signal);
+      await testApiKeyOpenAI(chatgptToken, controller.signal);
+
+      localStorage.setItem("github_username", userGithub.login);
+      localStorage.setItem("github_token", githubToken);
+      localStorage.setItem("chatgpt_token", chatgptToken);
+
+      router.push("/commits");
+    } catch (error) {
+      setIsLoading(false);
     }
-    if (!chatgptToken) {
-      newErrors.chatgptToken = intl.formatMessage({ id: 'form.chatgptToken.required' });
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setIsLoading(true)
-
-    localStorage.setItem("github_token", githubToken)
-    localStorage.setItem("chatgpt_token", chatgptToken)
-
-    router.push("/commits");
   }
 
   return (
@@ -116,14 +147,24 @@ export default function HomePage() {
                             <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
                           </Popover>
                         </label>
-                        <input
-                          id="github-token"
-                          type="password"
-                          placeholder={intl.formatMessage({ id: 'form.githubToken.placeholder' })}
-                          value={githubToken}
-                          onChange={handleGithubTokenChange}
-                          className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 ${errors.githubToken ? 'border-red-500' : ''}`}
-                        />
+                        <div className="relative">
+                          <input
+                            id="github-token"
+                            type={showGithubToken ? "text" : "password"}
+                            disabled={isLoading}
+                            placeholder={intl.formatMessage({ id: 'form.githubToken.placeholder' })}
+                            value={githubToken}
+                            onChange={handleGithubTokenChange}
+                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-16 ${errors.githubToken ? 'border-red-500' : ''}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleGithubTokenVisibility}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-400 font-medium"
+                          >
+                            {showGithubToken ? 'Ocultar' : 'Ver'}
+                          </button>
+                        </div>
                         {errors.githubToken && <p className="text-xs text-red-500 mt-1">{errors.githubToken}</p>}
                         <p className="text-xs text-gray-500">
                           <FormattedMessage
@@ -147,14 +188,24 @@ export default function HomePage() {
                             <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
                           </Popover>
                         </label>
-                        <input
-                          id="chatgpt-token"
-                          type="password"
-                          placeholder={intl.formatMessage({ id: 'form.chatgptToken.placeholder' })}
-                          value={chatgptToken}
-                          onChange={handleChatgptTokenChange}
-                          className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 ${errors.chatgptToken ? 'border-red-500' : ''}`}
-                        />
+                        <div className="relative">
+                          <input
+                            id="chatgpt-token"
+                            type={showChatgptToken ? "text" : "password"}
+                            disabled={isLoading}
+                            placeholder={intl.formatMessage({ id: 'form.chatgptToken.placeholder' })}
+                            value={chatgptToken}
+                            onChange={handleChatgptTokenChange}
+                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-16 ${errors.chatgptToken ? 'border-red-500' : ''}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={toggleChatgptTokenVisibility}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-400 font-medium"
+                          >
+                            {showChatgptToken ? 'Ocultar' : 'Ver'}
+                          </button>
+                        </div>
                         {errors.chatgptToken && <p className="text-xs text-red-500 mt-1">{errors.chatgptToken}</p>}
                         <p className="text-xs text-gray-500">
                           <FormattedMessage
@@ -200,6 +251,33 @@ export default function HomePage() {
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
                   <FormattedMessage id="footer.ai_insights" />
+                </div>
+              </div>
+
+              {/* Privacy and Security Section */}
+              <div className="group bg-gray-900/50 border border-gray-800 rounded-lg p-6 cursor-pointer transition-all duration-300 hover:bg-gray-900/80 hover:border-gray-700">
+                <h3 className="text-lg font-semibold text-white flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Privacidad y Seguridad de la Información
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:rotate-180 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </h3>
+
+                <div className="text-justify space-y-0 text-sm text-gray-400 max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-96 group-hover:opacity-100 md:group-hover:max-h-[500px] group-hover:space-y-3">
+                  <p>
+                    La seguridad de tu información es nuestra máxima prioridad. Todos los datos que ingreses en esta aplicación se utilizan <span className="text-white font-medium">únicamente para generar el resultado esperado</span> y en ningún momento son almacenados ni compartidos con terceros.
+                  </p>
+                  <p>
+                    En el inicio de la aplicación solicitamos <span className="text-white font-medium">tokens de GitHub y OpenAI</span> con el único propósito de autenticar y mostrar los resultados que tú mismo solicitas. Estos datos no son guardados, registrados ni usados con fines distintos a la ejecución de la funcionalidad de la aplicación.
+                  </p>
+                  <p>
+                    Puedes tener la certeza de que <span className="text-white font-medium">ninguna información compromete tu privacidad</span> ni será utilizada fuera del contexto específico de tu consulta.
+                  </p>
                 </div>
               </div>
             </div>

@@ -1,59 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image";
 import Modal from "../components/Modal";
-
-interface Commit {
-  sha: string
-  message: string
-  author: {
-    name: string
-    email: string
-    date: string
-  }
-  repository: string
-  url: string
-}
-
-const FAKE_COMMITS: Commit[] = [
-  {
-    sha: "a7b3c9d2e1f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8",
-    message:
-      "feat: implement user authentication with OAuth integration\n\nAdded Google and GitHub OAuth providers with secure token handling",
-    author: {
-      name: "Sarah Chen",
-      email: "sarah.chen@company.com",
-      date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    },
-    repository: "web-dashboard",
-    url: "https://github.com/company/web-dashboard/commit/a7b3c9d2e1f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8",
-  },
-  {
-    sha: "b8c4d0e3f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1",
-    message: "fix: resolve memory leak in data processing pipeline",
-    author: {
-      name: "Marcus Rodriguez",
-      email: "marcus.r@company.com",
-      date: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-    },
-    repository: "analytics-engine",
-    url: "https://github.com/company/analytics-engine/commit/b8c4d0e3f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1",
-  },
-  {
-    sha: "c9d5e1f4g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3",
-    message:
-      "refactor: optimize database queries for better performance\n\nReduced query execution time by 60% through indexing improvements",
-    author: {
-      name: "Emily Watson",
-      email: "emily.watson@company.com",
-      date: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-    },
-    repository: "user-service",
-    url: "https://github.com/company/user-service/commit/c9d5e1f4g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3",
-  },
-];
+import { fetchCommitsByPage, fetchRepositories as fetchReposFromAPI, type Commit, type Repository } from "@/api/github";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function CommitsPage() {
   const [commits, setCommits] = useState<Commit[]>([])
@@ -66,29 +18,100 @@ export default function CommitsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const router = useRouter()
 
-  /**
-   * @summary Loads fake commits to display in the page.
-   * @description This function simulates an API call to fetch commits and repositories.
-   */
-  const loadFakeCommits = useCallback(async () => {
+  const setAndGetRepositories = async () => {
+    const controller = new AbortController();
     try {
-      setIsLoading(true)
+      const githubToken = localStorage.getItem("github_token");
 
-      // Simulate API loading delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      if (!githubToken) return;
 
-      // Extract unique repositories
-      const repoNames = [...new Set(FAKE_COMMITS.map((commit) => commit.repository))]
-      setRepositories(repoNames)
+      setIsLoading(true);
 
-      // Set commits data
-      setCommits(FAKE_COMMITS)
+      const OWNER_GITHUB = localStorage.getItem('github_username');
+      const repos = await fetchReposFromAPI(OWNER_GITHUB, githubToken, controller.signal);
+      const repoNames = repos.map((repo) => repo.name);
+      setRepositories(repoNames);
+      return repoNames;
     } catch (error) {
-      console.error("Error loading commits:", error)
+      console.error("Error fetching repositories:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }
+
+  const setAndGetCommitsForRepository = async (repoName: string | null, page: number = 1, perPage: number = 100) => {
+    const controller = new AbortController();
+    const githubToken = localStorage.getItem("github_token");
+
+    try {
+      if (repoName === "all" || !repoName) {
+        setFilteredCommits([]);
+        setCommits([]);
+        return;
+      }
+
+      if (!githubToken) return;
+
+      const OWNER_GITHUB = localStorage.getItem('github_username');
+      const commits = await fetchCommitsByPage(OWNER_GITHUB, repoName, page, perPage, githubToken, controller.signal);
+
+      commits.sort((a: Commit, b: Commit) => new Date(b.author.date).getTime() - new Date(a.author.date).getTime());
+
+      setFilteredCommits(commits);
+      setCommits(commits);
+    } catch (error) {
+      console.error(`Error fetching commits for ${repoName}:`, error);
+    }
+  };
+
+  /**
+   * @description Filters commits by author name and commit message
+   * @param {Commit[]} commits - Array of commits to filter
+   * @param {string} searchFilter - Search value to filter by (case-insensitive, partial match)
+   * @return {Commit[]} Filtered array of commits matching either author or message
+   */
+  const filterCommitsByAuthorAndMessage = (commits: Commit[], searchFilter: string): Commit[] => {
+    if (!searchFilter) {
+      return commits;
+    }
+
+    const lowerSearchFilter = searchFilter.toLowerCase();
+
+    return commits.filter((commit) => {
+      const authorMatch = commit.author.name.toLowerCase().includes(lowerSearchFilter);
+      const messageMatch = commit.message.toLowerCase().includes(lowerSearchFilter);
+
+      return authorMatch || messageMatch;
+    });
+  };
+
+  /**
+   * @description Debounced version of the filter function with 500ms delay
+   */
+  const debouncedFilter = useDebounce(() => {
+    console.log('debug:hola')
+    setFilteredCommits(filterCommitsByAuthorAndMessage(commits, searchQuery));
+  }, 500);
+
+  /**
+   * @description Handles search input change and triggers debounced filtering
+   * @param {string} value - The search input value
+   * @return {void}
+   */
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    debouncedFilter();
+  };
+
+  /**
+   * 
+   * 
+   */
+  const handleSetRepository = (repositoryName: string) => {
+    setSelectedRepo(repositoryName);
+    setSearchQuery('');
+    setAndGetCommitsForRepository(repositoryName);
+  }
 
   /**
    * @summary Formats a date string to a more readable format.
@@ -159,51 +182,35 @@ export default function CommitsPage() {
     }
   }
 
+
   /**
-   * @summary Gets a random commit description.
-   * @returns {string} A random commit description.
+   * Set repositiories and show commits of first repository
+   *
+   * @return
    */
-  const getRandomCommitDescription = () => {
-    const descriptions = [
-      "These commits represent significant improvements to your codebase, including bug fixes, new features, and performance optimizations that will enhance user experience and system reliability.",
-      "The selected commits showcase a comprehensive development effort spanning multiple repositories, demonstrating collaborative work on authentication systems, database optimizations, and user interface enhancements.",
-      "Your commit selection includes critical updates to core functionality, security improvements, and architectural refactoring that will modernize your application stack and improve maintainability.",
-      "These commits reflect a well-rounded development cycle with feature additions, bug resolutions, and code quality improvements that strengthen your project's foundation and scalability.",
-      "The chosen commits represent strategic development decisions including API migrations, performance enhancements, and user experience improvements that align with modern development best practices.",
-    ]
-    return descriptions[Math.floor(Math.random() * descriptions.length)]
+  const setRepositoriesAndShowCommits = () => {
+    const setAngGet = async () => {
+      const githubToken = localStorage.getItem("github_token");
+      const chatgptToken = localStorage.getItem("chatgpt_token");
+
+      console.log('debug:token', { githubToken, chatgptToken })
+
+      if (!githubToken || !chatgptToken) {
+        router.push("/")
+        return
+      }
+
+      const [repository] = (await setAndGetRepositories()) ?? [];
+      setSelectedRepo(repository);
+      setAndGetCommitsForRepository(repository);
+    }
+
+    setAngGet();
   }
 
-  useEffect(() => {
-    let filtered = commits
+  useEffect(setRepositoriesAndShowCommits, [])
 
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (commit) =>
-          commit.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          commit.author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          commit.repository.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    }
-
-    if (selectedRepo !== "all") {
-      filtered = filtered.filter((commit) => commit.repository === selectedRepo)
-    }
-
-    setFilteredCommits(filtered)
-  }, [commits, searchQuery, selectedRepo])
-
-  useEffect(() => {
-    const githubToken = localStorage.getItem("github_token")
-    const chatgptToken = localStorage.getItem("chatgpt_token")
-
-    if (!githubToken || !chatgptToken) {
-      router.push("/")
-      return
-    }
-
-    loadFakeCommits()
-  }, [router, loadFakeCommits])
+  const fullSelectedCommits = commits.filter(commit => selectedCommits.has(commit.sha));
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -224,7 +231,7 @@ export default function CommitsPage() {
                   Repository Commits
                 </h1>
                 <p className="text-sm text-gray-400 mt-1">
-                  {filteredCommits.length} commits found across {repositories.length} repositories
+                  {filteredCommits.length} commits found in {selectedRepo} repository
                 </p>
               </div>
             </div>
@@ -233,7 +240,7 @@ export default function CommitsPage() {
               onClick={handleProcessCommits}
               disabled={selectedCommits.size === 0}
               className={`text-white font-bold py-2 px-4 rounded-md flex items-center gap-2 ${selectedCommits.size === 0 ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'}`}>
-              <Image src="/images/docs.png" alt="GitHub" width={16} height={16} />
+              <div className="w-4 h-4 bg-white"></div>
               Process Commits ({selectedCommits.size})
             </button>
           </div>
@@ -245,9 +252,9 @@ export default function CommitsPage() {
               <Image src="/images/search.png" alt="Search" width={16} height={16} />
             </div>
             <input
-              placeholder="Search commits, authors, or repositories..."
+              placeholder="Search commits or authors..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10 bg-gray-900 border-gray-800 rounded-md w-full text-white placeholder-gray-500 border px-4 py-2"
             />
           </div>
@@ -258,7 +265,7 @@ export default function CommitsPage() {
                 id="select-all"
                 checked={filteredCommits.length > 0 && selectedCommits.size === filteredCommits.length}
                 onChange={(e) => handleSelectAll(e.target.checked)}
-                className="h-4 w-4 rounded border border-blue-600 text-blue-600 focus:ring-blue-500 p-3"
+                className="h-4 w-4 rounded border border-blue-600 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="select-all" className="text-sm text-gray-400">
                 Select All
@@ -268,10 +275,10 @@ export default function CommitsPage() {
               <Image src="/images/filter.png" alt="Filter" width={16} height={16} />
               <select
                 value={selectedRepo}
-                onChange={(e) => setSelectedRepo(e.target.value)}
+                onChange={(e) => handleSetRepository(e.target.value)}
                 className="bg-gray-900 border border-gray-800 rounded-md px-3 py-2 text-sm"
               >
-                <option value="all">All Repositories</option>
+                <option value="all">Selected a repository</option>
                 {repositories.map((repo) => (
                   <option key={repo} value={repo}>
                     {repo}
@@ -316,7 +323,7 @@ export default function CommitsPage() {
                           type="checkbox"
                           checked={selectedCommits.has(commit.sha)}
                           onChange={(e) => handleCommitSelect(commit.sha, e.target.checked)}
-                          className="h-4 w-4 rounded border border-blue-600 text-blue-600 focus:ring-blue-500 mt-1"
+                          className="h-4 w-4 rounded border border-blue-600 text-blue-600 focus:ring-blue-500"
                         />
                         <div className="flex-1 space-y-2">
                           <div>
@@ -373,12 +380,12 @@ export default function CommitsPage() {
             }
           </div>
         )}
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Commit Analysis">
-          <p>{getRandomCommitDescription()}</p>
-          <div className="flex justify-end pt-4">
-            <button onClick={() => setIsModalOpen(false)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Close</button>
-          </div>
-        </Modal>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Commit Summary"
+          commits={fullSelectedCommits}
+        />
       </div>
     </div>
   )
