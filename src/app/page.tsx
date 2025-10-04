@@ -9,6 +9,12 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useI18n } from './context/I18nProvider';
 import { fetchUser } from "@/api/github";
 import { testApiKeyOpenAI } from "@/api/openai";
+import GithubSvg from "@/components/GithubSvg";
+import ChatGptSvg from "@/components/ChatGptSvg";
+import InfoSvg from "@/components/InfoSvg";
+import ArrowRightSvg from "@/components/ArrowRightSvg";
+import LockSvg from "@/components/LockSvg";
+import ToggleVisibility from "@/components/ToggleVisibility";
 
 /**
  * @summary The home page of the application.
@@ -23,6 +29,7 @@ export default function HomePage() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showGithubToken, setShowGithubToken] = useState(false);
   const [showChatgptToken, setShowChatgptToken] = useState(false);
+  const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
   const router = useRouter()
   const intl = useIntl();
   const { locale, setLocale } = useI18n();
@@ -140,11 +147,11 @@ export default function HomePage() {
                       <div className="space-y-2">
                         <label htmlFor="github-token" className="text-sm font-medium text-white flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Image src='/images/github.png' alt='github image' width={16} height={16} className="text-gray-400" />
+                            <GithubSvg height={20} width={20} color='#FFFFFF' />
                             <FormattedMessage id="form.githubToken.label" />
                           </div>
                           <Popover content={intl.formatMessage({ id: 'popover.githubToken' })}>
-                            <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
+                            <InfoSvg className="cursor-pointer" height={18} width={18} color='#FFFFFF' />
                           </Popover>
                         </label>
                         <div className="relative">
@@ -155,15 +162,16 @@ export default function HomePage() {
                             placeholder={intl.formatMessage({ id: 'form.githubToken.placeholder' })}
                             value={githubToken}
                             onChange={handleGithubTokenChange}
-                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-16 ${errors.githubToken ? 'border-red-500' : ''}`}
+                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-12 ${errors.githubToken ? 'border-red-500' : ''}`}
                           />
-                          <button
-                            type="button"
-                            onClick={toggleGithubTokenVisibility}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-400 font-medium"
-                          >
-                            {showGithubToken ? 'Ocultar' : 'Ver'}
-                          </button>
+                          <div className="absolute right-3 top-2">
+                            <ToggleVisibility
+                              isVisible={showGithubToken}
+                              onToggle={setShowGithubToken}
+                              size={18}
+                              color="#3B82F6"
+                            />
+                          </div>
                         </div>
                         {errors.githubToken && <p className="text-xs text-red-500 mt-1">{errors.githubToken}</p>}
                         <p className="text-xs text-gray-500">
@@ -181,11 +189,11 @@ export default function HomePage() {
                       <div className="space-y-2">
                         <label htmlFor="chatgpt-token" className="text-sm font-medium text-white flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Image src="/images/chatgpt.png" alt="ChatGPT image" width={14} height={14} />
+                            <ChatGptSvg height={16} width={16} color='#FFFFFF' />
                             <FormattedMessage id="form.chatgptToken.label" />
                           </div>
                           <Popover content={intl.formatMessage({ id: 'popover.chatgptToken' })}>
-                            <Image src="/images/information.png" alt="Information" width={16} height={16} className="cursor-pointer" />
+                            <InfoSvg className="cursor-pointer" height={18} width={18} color='#FFFFFF' />
                           </Popover>
                         </label>
                         <div className="relative">
@@ -196,15 +204,16 @@ export default function HomePage() {
                             placeholder={intl.formatMessage({ id: 'form.chatgptToken.placeholder' })}
                             value={chatgptToken}
                             onChange={handleChatgptTokenChange}
-                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-16 ${errors.chatgptToken ? 'border-red-500' : ''}`}
+                            className={`bg-gray-800 border-gray-700 rounded-md w-full text-white placeholder-gray-500 border px-4 py-1 pr-12 ${errors.chatgptToken ? 'border-red-500' : ''}`}
                           />
-                          <button
-                            type="button"
-                            onClick={toggleChatgptTokenVisibility}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-500 hover:text-blue-400 font-medium"
-                          >
-                            {showChatgptToken ? 'Ocultar' : 'Ver'}
-                          </button>
+                          <div className="absolute right-3 top-2">
+                            <ToggleVisibility
+                              isVisible={showChatgptToken}
+                              onToggle={setShowChatgptToken}
+                              size={18}
+                              color="#3B82F6"
+                            />
+                          </div>
                         </div>
                         {errors.chatgptToken && <p className="text-xs text-red-500 mt-1">{errors.chatgptToken}</p>}
                         <p className="text-xs text-gray-500">
@@ -231,7 +240,7 @@ export default function HomePage() {
                         ) : (
                           <>
                             <FormattedMessage id="form.button.submit" />
-                            <Image src="/images/right-arrow.png" alt="Arrow right image" width={16} height={16} className="ml-4" />
+                            <ArrowRightSvg className="ml-2" height={16} width={16} color='#FFFFFF' />
                           </>
                         )}
                     </button>
@@ -254,21 +263,21 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Privacy and Security Section */}
-              <div className="group bg-gray-900/50 border border-gray-800 rounded-lg p-6 cursor-pointer transition-all duration-300 hover:bg-gray-900/80 hover:border-gray-700">
+              <div
+                onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
+                className="bg-gray-900/50 border border-gray-800 rounded-lg p-6 cursor-pointer transition-all duration-300 hover:bg-gray-900/80 hover:border-gray-700"
+              >
                 <h3 className="text-lg font-semibold text-white flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                    <LockSvg width={20} height={20} color="#10B981" strokeWidth={2} />
                     Privacidad y Seguridad de la Información
                   </div>
-                  <svg className="w-4 h-4 text-gray-400 transition-transform duration-300 group-hover:rotate-180 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <div className={`transition-transform duration-300 ${showPrivacyInfo ? 'rotate-90' : 'rotate-0'}`}>
+                    <ArrowRightSvg height={16} width={16} color='#9CA3AF' />
+                  </div>
                 </h3>
 
-                <div className="text-justify space-y-0 text-sm text-gray-400 max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out group-hover:max-h-96 group-hover:opacity-100 md:group-hover:max-h-[500px] group-hover:space-y-3">
+                <div className={`text-justify space-y-0 text-sm text-gray-400 max-h-0 opacity-0 overflow-hidden transition-all duration-500 ease-in-out ${showPrivacyInfo ? 'max-h-96 opacity-100 space-y-3 md:max-h-[500px]' : ''}`}>
                   <p>
                     La seguridad de tu información es nuestra máxima prioridad. Todos los datos que ingreses en esta aplicación se utilizan <span className="text-white font-medium">únicamente para generar el resultado esperado</span> y en ningún momento son almacenados ni compartidos con terceros.
                   </p>

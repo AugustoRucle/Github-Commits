@@ -1,0 +1,56 @@
+'use client';
+
+import React from 'react';
+
+interface ArrowRightSvgProps {
+  className?: string;
+  width?: number;
+  height?: number;
+  color?: string;
+}
+
+/**
+ * @description A reusable Arrow Right SVG component with dynamic width, height, and color props.
+ *
+ * @param {number} width - The width of the SVG (default: 512)
+ * @param {number} height - The height of the SVG (default: 512)
+ * @param {string} color - The fill color of the SVG (default: '#000000')
+ */
+export const ArrowRightSvg: React.FC<ArrowRightSvgProps> = ({
+  className = '',
+  width = 512,
+  height = 512,
+  color = '#000000',
+}) => {
+  return (
+    <svg
+      className={className}
+      version="1.1"
+      id="arrow_right_icon"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlnsXlink="http://www.w3.org/1999/xlink"
+      x="0px"
+      y="0px"
+      viewBox="0 0 492.004 492.004"
+      style={{ enableBackground: 'new 0 0 492.004 492.004' } as React.CSSProperties}
+      xmlSpace="preserve"
+      width={width}
+      height={height}
+    >
+      <g>
+        <g>
+          <path
+            fill={color}
+            d="M484.14,226.886L306.46,49.202c-5.072-5.072-11.832-7.856-19.04-7.856c-7.216,0-13.972,2.788-19.044,7.856l-16.132,16.136
+			c-5.068,5.064-7.86,11.828-7.86,19.04c0,7.208,2.792,14.2,7.86,19.264L355.9,207.526H26.58C11.732,207.526,0,219.15,0,234.002
+			v22.812c0,14.852,11.732,27.648,26.58,27.648h330.496L252.248,388.926c-5.068,5.072-7.86,11.652-7.86,18.864
+			c0,7.204,2.792,13.88,7.86,18.948l16.132,16.084c5.072,5.072,11.828,7.836,19.044,7.836c7.208,0,13.968-2.8,19.04-7.872
+			l177.68-177.68c5.084-5.088,7.88-11.88,7.86-19.1C492.02,238.762,489.228,231.966,484.14,226.886z"
+          />
+        </g>
+      </g>
+    </svg>
+  );
+};
+
+export default ArrowRightSvg;
